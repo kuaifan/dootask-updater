@@ -121,11 +121,14 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
-      - name: Upload binary artifacts
+      - name: Upload binary artifacts (Linux)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           cd src-tauri/target/release
-          zip -j linux-x86_64.zip dootask
+          # 显示目录内容以检查实际文件名
+          ls -la
+          # 使用 package.json 中的 name 字段值
+          zip -j linux-x86_64.zip dootask-server
           gh release upload "v${{ needs.check-version.outputs.version }}" linux-x86_64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -152,7 +155,8 @@ jobs:
         if: matrix.platform == 'macos-latest' && contains(matrix.args, 'x86_64')
         run: |
           cd src-tauri/target/x86_64-apple-darwin/release
-          zip -j macos-x86_64.zip dootask
+          ls -la
+          zip -j macos-x86_64.zip dootask-server
           gh release upload "v${{ needs.check-version.outputs.version }}" macos-x86_64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -161,7 +165,8 @@ jobs:
         if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
         run: |
           cd src-tauri/target/aarch64-apple-darwin/release
-          zip -j macos-arm64.zip dootask
+          ls -la
+          zip -j macos-arm64.zip dootask-server
           gh release upload "v${{ needs.check-version.outputs.version }}" macos-arm64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
