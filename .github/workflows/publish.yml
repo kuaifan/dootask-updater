@@ -84,6 +84,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Download logo file
+        run: |
+          mkdir -p src-tauri/icons
+          curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.icns -o src-tauri/icons/icon.icns
+
       - name: setup node
         uses: actions/setup-node@v4
         with:

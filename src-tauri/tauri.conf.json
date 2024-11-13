@@ -32,7 +32,7 @@
         "active": true,
         "targets": "all",
         "icon": [
-            "../../../resources/assets/statics/public/images/logo-app.icns"
+            "icons/logo-app.icns"
         ]
     }
 }
