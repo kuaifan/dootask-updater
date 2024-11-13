@@ -12,10 +12,10 @@ jobs:
     outputs:
       should_release: ${{ steps.check-tag.outputs.should_release }}
       version: ${{ steps.get-version.outputs.version }}
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Get version from package.json
         id: get-version
         run: |
@@ -123,48 +123,48 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ needs.check-version.outputs.version }}
-          PLATFORM: ${{ matrix.platform }}
-          ARGS: ${{ matrix.args }}
         run: |
-          # 定义目标架构映射
-          declare -A TARGET_PATHS=(
-            ["windows-latest,aarch64"]="aarch64-pc-windows-msvc/release"
-            ["macos-latest,x86_64"]="x86_64-apple-darwin/release"
-            ["macos-latest,aarch64"]="aarch64-apple-darwin/release"
-          )
-          
-          # 定义平台映射关系
-          declare -A PLATFORM_MAP=(
-            ["ubuntu-22.04"]="linux-x86_64"
-            ["windows-latest,aarch64"]="windows-arm64"
-            ["windows-latest,"]="windows-x86_64"
-            ["macos-latest,x86_64"]="macos-x86_64"
-            ["macos-latest,aarch64"]="macos-arm64"
-          )
-          
-          # 获取平台标识符
-          PLATFORM_KEY="${PLATFORM},${ARGS##*--target }"
-          
-          # 设置路径和文件名
-          TARGET_PATH="src-tauri/target/${TARGET_PATHS[$PLATFORM_KEY]:-release}"
-          BINARY_NAME="updater${PLATFORM##*windows* && ".exe" || ""}"
-          ARTIFACT_NAME="binary_${VERSION}_${PLATFORM_MAP[$PLATFORM_KEY]}.zip"
-          
-          # 打包并上传
-          cd "$TARGET_PATH"
-          if [[ "$PLATFORM" == *"windows"* ]]; then
-            7z a "$ARTIFACT_NAME" "$BINARY_NAME"
-          else
-            zip -j "$ARTIFACT_NAME" "$BINARY_NAME"
+          # 设置基础变量
+          VERSION="${{ needs.check-version.outputs.version }}"
+          RELEASE_TAG="v$VERSION"
+
+          # 根据平台设置目录和文件名
+          if [[ "${{ matrix.platform }}" == "ubuntu-22.04" ]]; then
+            BINARY_PATH="src-tauri/target/release"
+            ARTIFACT_NAME="binary_${VERSION}_linux-x86_64.zip"
+            BINARY_NAME="updater"
+          elif [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
+            if [[ "${{ matrix.args }}" == *"aarch64"* ]]; then
+              BINARY_PATH="src-tauri/target/aarch64-pc-windows-msvc/release"
+              ARTIFACT_NAME="binary_${VERSION}_windows-arm64.zip"
+            else
+              BINARY_PATH="src-tauri/target/release"
+              ARTIFACT_NAME="binary_${VERSION}_windows-x86_64.zip"
+            fi
+            BINARY_NAME="updater.exe"
+          elif [[ "${{ matrix.platform }}" == "macos-latest" ]]; then
+            if [[ "${{ matrix.args }}" == *"x86_64"* ]]; then
+              BINARY_PATH="src-tauri/target/x86_64-apple-darwin/release"
+              ARTIFACT_NAME="binary_${VERSION}_macos-x86_64.zip"
+            else
+              BINARY_PATH="src-tauri/target/aarch64-apple-darwin/release"
+              ARTIFACT_NAME="binary_${VERSION}_macos-arm64.zip"
+            fi
+            BINARY_NAME="updater"
           fi
-          
-          echo "正在上传 $ARTIFACT_NAME..."
-          gh release upload "v${VERSION}" "$ARTIFACT_NAME" || {
-            echo "上传失败，重试..." 
-            sleep 3
-            gh release upload "v${VERSION}" "$ARTIFACT_NAME"
-          }
+
+          # 进入目标目录
+          cd $BINARY_PATH
+
+          # 根据平台选择打包命令
+          if [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
+            7z a $ARTIFACT_NAME $BINARY_NAME
+          else
+            zip -j $ARTIFACT_NAME $BINARY_NAME
+          fi
+
+          # 上传文件
+          gh release upload $RELEASE_TAG $ARTIFACT_NAME
 
   publish-release:
     needs: [check-version, create-release, build-tauri]
