@@ -121,6 +121,51 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
+      - name: Upload binary artifacts
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          cd src-tauri/target/release
+          zip -j linux-x86_64.zip dootask
+          gh release upload "v${{ needs.check-version.outputs.version }}" linux-x86_64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload binary artifacts (Windows)
+        if: matrix.platform == 'windows-latest' && !contains(matrix.args, 'aarch64')
+        run: |
+          cd src-tauri/target/release
+          7z a windows-x86_64.zip dootask.exe
+          gh release upload "v${{ needs.check-version.outputs.version }}" windows-x86_64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload binary artifacts (Windows ARM)
+        if: matrix.platform == 'windows-latest' && contains(matrix.args, 'aarch64')
+        run: |
+          cd src-tauri/target/aarch64-pc-windows-msvc/release
+          7z a windows-arm64.zip dootask.exe
+          gh release upload "v${{ needs.check-version.outputs.version }}" windows-arm64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload binary artifacts (macOS Intel)
+        if: matrix.platform == 'macos-latest' && contains(matrix.args, 'x86_64')
+        run: |
+          cd src-tauri/target/x86_64-apple-darwin/release
+          zip -j macos-x86_64.zip dootask
+          gh release upload "v${{ needs.check-version.outputs.version }}" macos-x86_64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload binary artifacts (macOS ARM)
+        if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
+        run: |
+          cd src-tauri/target/aarch64-apple-darwin/release
+          zip -j macos-arm64.zip dootask
+          gh release upload "v${{ needs.check-version.outputs.version }}" macos-arm64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-release:
     needs: [check-version, create-release, build-tauri]
     if: needs.check-version.outputs.should_release == 'true'
