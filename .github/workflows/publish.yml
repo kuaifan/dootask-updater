@@ -135,8 +135,8 @@ jobs:
         if: matrix.platform == 'windows-latest' && !contains(matrix.args, 'aarch64')
         run: |
           cd src-tauri/target/release
-          ls -la
-          7z a windows-x86_64.zip dootask.exe
+          ls
+          7z a windows-x86_64.zip updater.exe
           gh release upload "v${{ needs.check-version.outputs.version }}" windows-x86_64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -145,8 +145,8 @@ jobs:
         if: matrix.platform == 'windows-latest' && contains(matrix.args, 'aarch64')
         run: |
           cd src-tauri/target/aarch64-pc-windows-msvc/release
-          ls -la
-          7z a windows-arm64.zip dootask.exe
+          ls
+          7z a windows-arm64.zip updater.exe
           gh release upload "v${{ needs.check-version.outputs.version }}" windows-arm64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
