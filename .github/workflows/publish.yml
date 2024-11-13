@@ -88,6 +88,7 @@ jobs:
         run: |
           mkdir -p src-tauri/icons
           curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.icns -o src-tauri/icons/icon.icns
+          curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.ico -o src-tauri/icons/icon.ico
           curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.png -o src-tauri/icons/icon.png
 
       - name: setup node
