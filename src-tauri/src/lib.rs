@@ -4,11 +4,17 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tauri::Manager;
 
+#[tauri::command]
+async fn ready(window: tauri::Window) {
+    window.show().unwrap();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let args: Vec<String> = env::args().collect();
     
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![ready])
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
             let start_time = Instant::now();

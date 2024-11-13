@@ -71,15 +71,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest" # 用于 ARM 架构的 Mac（M1及以上）
+          - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
-          - platform: "macos-latest" # 用于 Intel 架构的 Mac
+          - platform: "macos-latest"
             args: "--target x86_64-apple-darwin"
-          - platform: "ubuntu-22.04" # 用于 Linux 系统
+          - platform: "ubuntu-22.04"
             args: ""
-          - platform: "windows-latest" # 用于 Windows x64 系统
+          - platform: "windows-latest"
             args: ""
-          - platform: "windows-latest" # 用于 Windows ARM64 系统
+          - platform: "windows-latest"
             args: "--target aarch64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
@@ -108,11 +108,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-        # webkitgtk 4.0 用于 Tauri v1，webkitgtk 4.1 用于 Tauri v2
-        # 如果确定使用的 Tauri 版本，可以删除不需要的依赖来加快工作流程
 
       - name: install frontend dependencies
-        run: yarn install # 可以根据项目使用的包管理器改为 npm、pnpm 或 bun
+        run: yarn install
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -121,55 +119,52 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
 
-      - name: Upload binary artifacts (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          cd src-tauri/target/release
-          ls -la
-          zip -j linux-x86_64.zip updater
-          gh release upload "v${{ needs.check-version.outputs.version }}" linux-x86_64.zip
+      - name: Upload binary artifacts
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload binary artifacts (Windows)
-        if: matrix.platform == 'windows-latest' && !contains(matrix.args, 'aarch64')
+          VERSION: ${{ needs.check-version.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+          ARGS: ${{ matrix.args }}
         run: |
-          cd src-tauri/target/release
-          ls
-          7z a windows-x86_64.zip updater.exe
-          gh release upload "v${{ needs.check-version.outputs.version }}" windows-x86_64.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload binary artifacts (Windows ARM)
-        if: matrix.platform == 'windows-latest' && contains(matrix.args, 'aarch64')
-        run: |
-          cd src-tauri/target/aarch64-pc-windows-msvc/release
-          ls
-          7z a windows-arm64.zip updater.exe
-          gh release upload "v${{ needs.check-version.outputs.version }}" windows-arm64.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload binary artifacts (macOS Intel)
-        if: matrix.platform == 'macos-latest' && contains(matrix.args, 'x86_64')
-        run: |
-          cd src-tauri/target/x86_64-apple-darwin/release
-          ls -la
-          zip -j macos-x86_64.zip updater
-          gh release upload "v${{ needs.check-version.outputs.version }}" macos-x86_64.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload binary artifacts (macOS ARM)
-        if: matrix.platform == 'macos-latest' && contains(matrix.args, 'aarch64')
-        run: |
-          cd src-tauri/target/aarch64-apple-darwin/release
-          ls -la
-          zip -j macos-arm64.zip updater
-          gh release upload "v${{ needs.check-version.outputs.version }}" macos-arm64.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 定义目标架构映射
+          declare -A TARGET_PATHS=(
+            ["windows-latest,aarch64"]="aarch64-pc-windows-msvc/release"
+            ["macos-latest,x86_64"]="x86_64-apple-darwin/release"
+            ["macos-latest,aarch64"]="aarch64-apple-darwin/release"
+          )
+          
+          # 定义平台映射关系
+          declare -A PLATFORM_MAP=(
+            ["ubuntu-22.04"]="linux-x86_64"
+            ["windows-latest,aarch64"]="windows-arm64"
+            ["windows-latest,"]="windows-x86_64"
+            ["macos-latest,x86_64"]="macos-x86_64"
+            ["macos-latest,aarch64"]="macos-arm64"
+          )
+          
+          # 获取平台标识符
+          PLATFORM_KEY="${PLATFORM},${ARGS##*--target }"
+          
+          # 设置路径和文件名
+          TARGET_PATH="src-tauri/target/${TARGET_PATHS[$PLATFORM_KEY]:-release}"
+          BINARY_NAME="updater${PLATFORM##*windows* && ".exe" || ""}"
+          ARTIFACT_NAME="binary_${VERSION}_${PLATFORM_MAP[$PLATFORM_KEY]}.zip"
+          
+          # 打包并上传
+          cd "$TARGET_PATH"
+          if [[ "$PLATFORM" == *"windows"* ]]; then
+            7z a "$ARTIFACT_NAME" "$BINARY_NAME"
+          else
+            zip -j "$ARTIFACT_NAME" "$BINARY_NAME"
+          fi
+          
+          echo "正在上传 $ARTIFACT_NAME..."
+          gh release upload "v${VERSION}" "$ARTIFACT_NAME" || {
+            echo "上传失败，重试..." 
+            sleep 3
+            gh release upload "v${VERSION}" "$ARTIFACT_NAME"
+          }
 
   publish-release:
     needs: [check-version, create-release, build-tauri]
