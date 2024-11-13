@@ -125,10 +125,8 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           cd src-tauri/target/release
-          # 显示目录内容以检查实际文件名
           ls -la
-          # 使用 package.json 中的 name 字段值
-          zip -j linux-x86_64.zip dootask-server
+          zip -j linux-x86_64.zip updater
           gh release upload "v${{ needs.check-version.outputs.version }}" linux-x86_64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,6 +135,7 @@ jobs:
         if: matrix.platform == 'windows-latest' && !contains(matrix.args, 'aarch64')
         run: |
           cd src-tauri/target/release
+          ls -la
           7z a windows-x86_64.zip dootask.exe
           gh release upload "v${{ needs.check-version.outputs.version }}" windows-x86_64.zip
         env:
@@ -146,6 +145,7 @@ jobs:
         if: matrix.platform == 'windows-latest' && contains(matrix.args, 'aarch64')
         run: |
           cd src-tauri/target/aarch64-pc-windows-msvc/release
+          ls -la
           7z a windows-arm64.zip dootask.exe
           gh release upload "v${{ needs.check-version.outputs.version }}" windows-arm64.zip
         env:
@@ -156,7 +156,7 @@ jobs:
         run: |
           cd src-tauri/target/x86_64-apple-darwin/release
           ls -la
-          zip -j macos-x86_64.zip dootask-server
+          zip -j macos-x86_64.zip updater
           gh release upload "v${{ needs.check-version.outputs.version }}" macos-x86_64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -166,7 +166,7 @@ jobs:
         run: |
           cd src-tauri/target/aarch64-apple-darwin/release
           ls -la
-          zip -j macos-arm64.zip dootask-server
+          zip -j macos-arm64.zip updater
           gh release upload "v${{ needs.check-version.outputs.version }}" macos-arm64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
