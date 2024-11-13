@@ -48,7 +48,7 @@ jobs:
 
       - name: create release
         id: create-release
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const { data } = await github.rest.repos.createRelease({
@@ -88,6 +88,7 @@ jobs:
         run: |
           mkdir -p src-tauri/icons
           curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.icns -o src-tauri/icons/icon.icns
+          curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.png -o src-tauri/icons/icon.png
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -128,7 +129,7 @@ jobs:
     steps:
       - name: publish release
         id: publish-release
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         env:
           release_id: ${{ needs.create-release.outputs.release_id }}
         with:

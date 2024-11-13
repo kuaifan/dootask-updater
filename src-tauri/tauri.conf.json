@@ -32,7 +32,8 @@
         "active": true,
         "targets": "all",
         "icon": [
-            "icons/logo-app.icns"
+            "icons/icon.icns",
+            "icons/icon.png"
         ]
     }
 }
