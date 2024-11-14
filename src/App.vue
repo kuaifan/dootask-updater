@@ -1,6 +1,6 @@
 <template>
     <main class="container">
-        <div class="title">正在安装更新，请稍候...</div>
+        <div class="title">{{ updateMessage }}</div>
         <div class="progress">
             <div class="progress-bar"></div>
         </div>
@@ -8,6 +8,19 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+
+const updateMessage = ref('Installing updates, please wait...')
+
+onMounted(() => {
+    // 获取 URL 参数
+    const urlParams = new URLSearchParams(window.location.search)
+    const message = urlParams.get('message')
+    if (message) {
+        updateMessage.value = decodeURIComponent(message)
+    }
+})
+
 // 监听系统主题变化
 const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 const updateTheme = (e: MediaQueryListEvent | MediaQueryList) => {
@@ -37,6 +50,10 @@ darkModeMediaQuery.addEventListener('change', updateTheme);
     font-size: 15px;
     color: var(--text-color);
     margin-bottom: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .progress {

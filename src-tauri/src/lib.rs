@@ -2,21 +2,25 @@ use std::env;
 use std::fs;
 use std::thread;
 use std::time::{Duration, Instant};
-use tauri::Manager;
-
-#[tauri::command]
-async fn ready(window: tauri::Window) {
-    window.show().unwrap();
-}
+use tauri::{Listener, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let args: Vec<String> = env::args().collect();
     
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![ready])
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
+            
+            // 先隐藏窗口
+            window.hide().unwrap();
+            
+            // 监听自定义的页面加载完成事件
+            let window_clone = window.clone();
+            app.listen("page-loaded", move |_| {
+                window_clone.show().unwrap();
+            });
+            
             let start_time = Instant::now();
             
             // 只有在提供参数时才进行文件检测
