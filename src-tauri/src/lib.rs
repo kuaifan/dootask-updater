@@ -29,9 +29,7 @@ pub fn run() {
                             urlencoding::encode(&content)
                         );
                         // 导航到新URL
-                        window
-                            .eval(&format!("window.location.href = '{}'", new_url))
-                            .unwrap();
+                        let _ = window.eval(&format!("window.location.href = '{}'", new_url));
                     }
                 }
 
@@ -43,13 +41,14 @@ pub fn run() {
                     loop {
                         // 检查临时文件是否存在
                         if !fs::metadata(&tmp_file_clone).is_ok() {
-                            window_clone.close().unwrap();
+                            // 安全地关闭窗口，忽略可能的错误
+                            let _ = window_clone.close();
                             break;
                         }
 
                         // 60秒超时保护
                         if start_time.elapsed().as_secs() > 60 {
-                            window_clone.close().unwrap();
+                            let _ = window_clone.close();
                             break;
                         }
 
@@ -61,7 +60,7 @@ pub fn run() {
             // 监听自定义的页面加载完成事件
             let window_clone = window.clone();
             app.listen("page-loaded", move |_| {
-                window_clone.show().unwrap();
+                let _ = window_clone.show();
             });
 
             Ok(())
