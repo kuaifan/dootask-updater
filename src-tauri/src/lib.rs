@@ -1,7 +1,8 @@
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::{Listener, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -12,30 +13,56 @@ pub fn run() {
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
 
-            let window_c = window.clone();
-            let aaa = args.clone();
+            // 如果有临时文件参数，读取其内容并作为查询参数
+            if args.len() > 2 {
+                let tmp_file = PathBuf::from(&args[1]);
 
-            thread::spawn(move || {
-                loop {
-                    let bbb = aaa.clone();
-                    let _ = window_c.eval(&format!(
-                        "document.body.appendChild(document.createTextNode('参数长度：{}，内容：{}----'))",
-                        bbb.len(),
-                        bbb.join(", ")
-                    ));
-                    for arg in bbb {
-                        let tmp_file = PathBuf::from(&arg);
-                        let _ = window_c.eval(&format!(
-                            "document.body.appendChild(document.createTextNode('文件：{}，是否存在：{}----'))",
-                            arg,
-                            tmp_file.exists()
-                        ));
+                // 读取文件内容
+                if let Ok(content) = fs::read_to_string(&tmp_file) {
+                    // 构建带查询参数的URL
+                    if let Ok(base_url) = window.url() {
+                        let new_url = format!(
+                            "{}?message={}",
+                            base_url.as_str(),
+                            urlencoding::encode(&content)
+                        );
+                        // 导航到新URL
+                        let _ = window.eval(&format!("window.location.href = '{}'", new_url));
                     }
-
-                    thread::sleep(Duration::from_secs(1));
                 }
-            });
 
+                let window_clone = window.clone();
+                let tmp_file_clone = tmp_file.clone();
+                let start_time = Instant::now();
+
+                thread::spawn(move || {
+                    loop {
+                        // 使用exists()方法替代metadata检查
+                        if !tmp_file_clone.exists() {
+                            // 安全地关闭窗口，忽略可能的错误
+                            let _ = window_clone.eval(&format!(
+                                "document.body.appendChild(document.createTextNode('参数长度：{}，文件不存在：{}----'))",
+                                args.len(),
+                                args[1]
+                            ));
+                            break;
+                        }
+
+                        // 60秒超时保护
+                        if start_time.elapsed().as_secs() > 60 {
+                            let _ = window_clone.eval(&format!(
+                                "document.body.appendChild(document.createTextNode('参数长度：{}，文件路径：{}，时间：{}秒----'))",
+                                args.len(),
+                                args[1],
+                                start_time.elapsed().as_secs()
+                            ));
+                            break;
+                        }
+
+                        thread::sleep(Duration::from_secs(1));
+                    }
+                });
+            }
 
             // 监听自定义的页面加载完成事件
             let window_clone = window.clone();
