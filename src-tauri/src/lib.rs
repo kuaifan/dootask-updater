@@ -1,5 +1,4 @@
 use std::env;
-use std::fs;
 use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -17,26 +16,14 @@ pub fn run() {
             if args.len() >= 2 {
                 let tmp_file = PathBuf::from(&args[1]);
 
-                // 读取文件内容
-                if let Ok(content) = fs::read_to_string(&tmp_file) {
-                    // 构建带查询参数的URL
-                    if let Ok(base_url) = window.url() {
-                        let new_url = format!(
-                            "{}?message={}",
-                            base_url.as_str(),
-                            urlencoding::encode(&content)
-                        );
-                        // 导航到新URL
-                        let _ = window.eval(&format!("window.location.href = '{}'", new_url));
-                    }
-                }
-
                 let window_clone = window.clone();
                 let tmp_file_clone = tmp_file.clone();
                 let start_time = Instant::now();
 
                 thread::spawn(move || {
                     loop {
+                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('1111----'))"));
+
                         // 使用exists()方法替代metadata检查
                         if !tmp_file_clone.exists() {
                             // 安全地关闭窗口，忽略可能的错误
@@ -47,6 +34,7 @@ pub fn run() {
                             ));
                             break;
                         }
+                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('2222----'))"));
 
                         // 60秒超时保护
                         if start_time.elapsed().as_secs() > 60 {
@@ -58,6 +46,7 @@ pub fn run() {
                             ));
                             break;
                         }
+                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('3333----'))"));
 
                         thread::sleep(Duration::from_secs(1));
                     }
