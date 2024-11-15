@@ -26,7 +26,6 @@ pub fn run() {
                         if start_time.elapsed().as_secs() > 20 {
                             if !fs::metadata(&tmp_file_clone).is_ok() {
                                 let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件不存在----'))"));
-                                break;
                             } else {
                                 let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件还在----'))"));
                             }
