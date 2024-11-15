@@ -14,7 +14,7 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
 
             // 如果有临时文件参数，读取其内容并作为查询参数
-            if args.len() > 2 {
+            if args.len() >= 2 {
                 let tmp_file = PathBuf::from(&args[1]);
 
                 // 读取文件内容
