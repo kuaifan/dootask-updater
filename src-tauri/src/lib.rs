@@ -18,6 +18,20 @@ pub fn run() {
                 let file_clone = args[1].clone();
                 let start_time = Instant::now();
 
+                // 读取文件内容
+                if let Ok(content) = fs::read_to_string(&file_clone) {
+                    // 构建带查询参数的URL
+                    if let Ok(base_url) = window_clone.url() {
+                        let new_url = format!(
+                            "{}?message={}",
+                            base_url.as_str(),
+                            urlencoding::encode(&content)
+                        );
+                        // 导航到新URL
+                        let _ = window_clone.eval(&format!("window.location.href = '{}'", new_url));
+                    }
+                }
+
                 thread::spawn(move || {
                     loop {
                         // 检查临时文件是否存在
