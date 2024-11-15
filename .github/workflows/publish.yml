@@ -168,7 +168,7 @@ jobs:
 
   publish-release:
     needs: [check-version, create-release, build-tauri]
-    if: needs.check-version.outputs.should_release == 'true'
+    if: needs.check-version.outputs.should_release == 'true' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
     runs-on: ubuntu-latest
