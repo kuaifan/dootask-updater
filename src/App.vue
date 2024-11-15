@@ -109,8 +109,6 @@ darkModeMediaQuery.addEventListener('change', updateTheme);
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
 
-    user-select: none;
-    -webkit-user-select: none;
     overscroll-behavior: none;
 }
 
