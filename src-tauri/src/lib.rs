@@ -15,36 +15,24 @@ pub fn run() {
 
             if args.len() >= 2 {
                 let window_clone = window.clone();
-                let tmp_file_clone = args[1].clone();
+                let file_clone = args[1].clone();
                 let start_time = Instant::now();
 
                 thread::spawn(move || {
                     loop {
-                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('11----'))"));
-
-
-                        if start_time.elapsed().as_secs() > 20 {
-                            if !fs::metadata(&tmp_file_clone).is_ok() {
-                                let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件不存在----'))"));
-                            } else {
-                                let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件还在----'))"));
-                            }
-
-                            if let Ok(content) = fs::read_to_string(&tmp_file_clone) {
-                                if let Ok(base_url) = window_clone.url() {
-                                    let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件读取成功, url: {}, 内容: {}----'))", base_url, content));
-                                } else {
-                                    let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件读取成功, url: 读取失败, 内容: {}----'))", content));  
-                                }
-                            } else {
-                                let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件读取失败----'))"));
-                            }
+                        // 检查临时文件是否存在
+                        if !fs::metadata(&file_clone).is_ok() {
+                            let _ = window_clone.close();
+                            break;
+                        }
+                        
+                        // 60秒超时保护
+                        if start_time.elapsed().as_secs() > 60 {
+                            let _ = window_clone.close();
+                            break;
                         }
 
-
-                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('22----'))"));
-
-                        thread::sleep(Duration::from_secs(2));
+                        thread::sleep(Duration::from_secs(1));
                     }
                 });
             }
