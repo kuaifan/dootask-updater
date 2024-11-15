@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
 use tauri::{Listener, Manager};
@@ -14,7 +15,7 @@ pub fn run() {
 
             // 如果有临时文件参数，读取其内容并作为查询参数
             if args.len() == 2 {
-                let tmp_file = args[1].clone();
+                let tmp_file = PathBuf::from(&args[1]);
 
                 // 读取文件内容
                 if let Ok(content) = fs::read_to_string(&tmp_file) {
@@ -36,8 +37,8 @@ pub fn run() {
 
                 thread::spawn(move || {
                     loop {
-                        // 检查临时文件是否存在
-                        if !fs::metadata(&tmp_file_clone).is_ok() {
+                        // 使用exists()方法替代metadata检查
+                        if !tmp_file_clone.exists() {
                             // 安全地关闭窗口，忽略可能的错误
                             let _ = window_clone.close();
                             break;
