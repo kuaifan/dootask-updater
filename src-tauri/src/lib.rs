@@ -12,9 +12,6 @@ pub fn run() {
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
 
-            // 先隐藏窗口
-            window.hide().unwrap();
-
             // 如果有临时文件参数，读取其内容并作为查询参数
             if args.len() == 2 {
                 let tmp_file = args[1].clone();

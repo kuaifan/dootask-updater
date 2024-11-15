@@ -17,10 +17,13 @@
                 "height": 150,
                 "center": true,
                 "resizable": false,
+                "maximizable": false,
                 "decorations": true,
                 "transparent": true,
                 "alwaysOnTop": true,
-                "dragDropEnabled": false
+                "dragDropEnabled": false,
+                "fullscreen": false,
+                "visible": false
             }
         ],
         "macOSPrivateApi": true,
