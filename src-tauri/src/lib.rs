@@ -1,5 +1,5 @@
 use std::env;
-use std::path::PathBuf;
+use std::fs;
 use std::thread;
 use std::time::{Duration, Instant};
 use tauri::{Listener, Manager};
@@ -12,43 +12,40 @@ pub fn run() {
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
 
-            // 如果有临时文件参数，读取其内容并作为查询参数
-            if args.len() >= 2 {
-                let tmp_file = PathBuf::from(&args[1]);
 
+            if args.len() >= 2 {
                 let window_clone = window.clone();
-                let tmp_file_clone = tmp_file.clone();
+                let tmp_file_clone = args[1].clone();
                 let start_time = Instant::now();
 
                 thread::spawn(move || {
                     loop {
-                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('1111----'))"));
+                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('11----'))"));
 
-                        // 使用exists()方法替代metadata检查
-                        if !tmp_file_clone.exists() {
-                            // 安全地关闭窗口，忽略可能的错误
-                            let _ = window_clone.eval(&format!(
-                                "document.body.appendChild(document.createTextNode('参数长度：{}，文件不存在：{}----'))",
-                                args.len(),
-                                args[1]
-                            ));
-                            break;
+
+                        if start_time.elapsed().as_secs() > 20 {
+                            if !fs::metadata(&tmp_file_clone).is_ok() {
+                                let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件不存在----'))"));
+                                break;
+                            } else {
+                                let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件还在----'))"));
+                            }
+
+                            if let Ok(content) = fs::read_to_string(&tmp_file_clone) {
+                                if let Ok(base_url) = window_clone.url() {
+                                    let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件读取成功, url: {}, 内容: {}----'))", base_url, content));
+                                } else {
+                                    let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件读取成功, url: 读取失败, 内容: {}----'))", content));  
+                                }
+                            } else {
+                                let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('文件读取失败----'))"));
+                            }
                         }
-                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('2222----'))"));
 
-                        // 60秒超时保护
-                        if start_time.elapsed().as_secs() > 60 {
-                            let _ = window_clone.eval(&format!(
-                                "document.body.appendChild(document.createTextNode('参数长度：{}，文件路径：{}，时间：{}秒----'))",
-                                args.len(),
-                                args[1],
-                                start_time.elapsed().as_secs()
-                            ));
-                            break;
-                        }
-                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('3333----'))"));
 
-                        thread::sleep(Duration::from_secs(1));
+                        let _ = window_clone.eval(&format!("document.body.appendChild(document.createTextNode('22----'))"));
+
+                        thread::sleep(Duration::from_secs(2));
                     }
                 });
             }
