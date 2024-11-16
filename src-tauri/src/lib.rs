@@ -22,12 +22,14 @@ pub fn run() {
                     loop {
                         // 检查临时文件是否存在
                         if !fs::metadata(&file_clone).is_ok() {
+                            let _ = window_clone.eval("typeof window.updateCompleted === 'function' && window.updateCompleted()");
+                            thread::sleep(Duration::from_millis(500));
                             let _ = window_clone.close();
                             break;
                         }
                         
-                        // 60秒超时保护
-                        if start_time.elapsed().as_secs() > 60 {
+                        // 90秒超时保护
+                        if start_time.elapsed().as_secs() > 90 {
                             let _ = window_clone.close();
                             break;
                         }

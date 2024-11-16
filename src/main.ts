@@ -6,7 +6,6 @@ createApp(App).mount("#app");
 
 declare global {
   interface Window {
-      updateTitle: (title: string) => void;
       appsEmit: typeof emit;
   }
 }

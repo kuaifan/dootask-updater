@@ -2,7 +2,7 @@
     <main class="container">
         <div class="title">{{ updateMessage }}</div>
         <div class="progress">
-            <div class="progress-bar"></div>
+            <div class="progress-bar" :class="{ 'completed': isCompleted }"></div>
         </div>
     </main>
 </template>
@@ -10,13 +10,29 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
+declare global {
+    interface Window {
+        updateTitle: (title: string) => void
+        updateCompleted: () => void
+    }
+}
+
 const updateMessage = ref('Installing updates, please wait...')
+const isCompleted = ref(false)
 
 onMounted(() => {
     window.updateTitle = (title: string) => {
         if (title) {
             updateMessage.value = title
         }
+    }
+    window.updateCompleted = () => {
+        const progressBar = document.querySelector('.progress-bar') as HTMLElement
+        const currentWidth = getComputedStyle(progressBar).width
+        progressBar.style.animation = 'none'
+        progressBar.style.width = currentWidth
+        progressBar.offsetHeight
+        isCompleted.value = true
     }
 })
 
@@ -58,7 +74,7 @@ darkModeMediaQuery.addEventListener('change', updateTheme);
 .progress {
     width: 260px;
     max-width: 100%;
-    height: 4px;
+    height: 6px;
     background: var(--progress-bg);
     border-radius: 2px;
     margin: 0 auto;
@@ -66,22 +82,28 @@ darkModeMediaQuery.addEventListener('change', updateTheme);
 }
 
 .progress-bar {
-    width: 25%;
+    width: 0%;
     height: 100%;
     background: var(--progress-bar-color);
     border-radius: 2px;
-    animation: progress 2s ease-in-out infinite;
+    animation: progress 30s cubic-bezier(0.1, 0.5, 0.2, 1) forwards;
+}
+
+.progress-bar.completed {
+    animation: none;
+    transition: width 0.3s ease-out;
+    width: 100% !important;
 }
 
 @keyframes progress {
     0% {
-        transform: translateX(-100%);
+        width: 0%;
     }
     50% {
-        transform: translateX(400%);
+        width: 75%;
     }
     100% {
-        transform: translateX(-100%);
+        width: 99%;
     }
 }
 </style>
