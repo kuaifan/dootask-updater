@@ -101,7 +101,7 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform == 'windows-latest' && contains(matrix.args, 'aarch64') && 'aarch64-pc-windows-msvc' || matrix.platform == 'ubuntu-22.04' && contains(matrix.args, 'aarch64') && 'aarch64-unknown-linux-gnu' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform == 'windows-latest' && contains(matrix.args, 'aarch64') && 'aarch64-pc-windows-msvc' || '' }}
 
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
@@ -133,6 +133,7 @@ jobs:
           if [[ "${{ matrix.platform }}" == "ubuntu-22.04" ]]; then
             BINARY_PATH="src-tauri/target/release"
             ARTIFACT_NAME="binary_${VERSION}_linux-x86_64.zip"
+            BINARY_NAME="updater"
           elif [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
             if [[ "${{ matrix.args }}" == *"aarch64"* ]]; then
               BINARY_PATH="src-tauri/target/aarch64-pc-windows-msvc/release"
