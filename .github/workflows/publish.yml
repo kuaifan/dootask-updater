@@ -21,8 +21,6 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          # 更新 tauri.conf.json 中的版本号
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
 
       - name: Check if tag exists
         id: check-tag
@@ -113,6 +111,14 @@ jobs:
 
       - name: install frontend dependencies
         run: yarn install
+
+      - name: Sync version to tauri.conf.json
+        run: |
+          node -e "
+            const config = require('./src-tauri/tauri.conf.json');
+            config.version = '${{ needs.check-version.outputs.version }}';
+            require('fs').writeFileSync('./src-tauri/tauri.conf.json', JSON.stringify(config, null, 2) + '\n');
+          "
 
       - uses: tauri-apps/tauri-action@v0
         env:
