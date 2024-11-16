@@ -34,6 +34,13 @@ jobs:
             echo "should_release=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Update version in tauri.conf.json
+        if: steps.check-tag.outputs.should_release == 'true'
+        run: |
+          VERSION=${{ steps.get-version.outputs.version }}
+          # 直接修改 tauri.conf.json 中的版本号
+          jq --arg version "$VERSION" '.package.version = $version' -i src-tauri/tauri.conf.json
+
   create-release:
     needs: check-version
     if: needs.check-version.outputs.should_release == 'true'

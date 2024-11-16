@@ -11,26 +11,12 @@ pub fn run() {
     tauri::Builder::default()
         .setup(move |app| {
             let window = app.get_webview_window("main").unwrap();
-
+            let update_title = env::var("UPDATER_TITLE").unwrap_or_else(|_| String::from("默认标题"));
 
             if args.len() >= 2 {
                 let window_clone = window.clone();
                 let file_clone = args[1].clone();
                 let start_time = Instant::now();
-
-                // 读取文件内容
-                if let Ok(content) = fs::read_to_string(&file_clone) {
-                    // 构建带查询参数的URL
-                    if let Ok(base_url) = window_clone.url() {
-                        let new_url = format!(
-                            "{}?message={}",
-                            base_url.as_str(),
-                            urlencoding::encode(&content)
-                        );
-                        // 导航到新URL
-                        let _ = window_clone.eval(&format!("window.location.href = '{}'", new_url));
-                    }
-                }
 
                 thread::spawn(move || {
                     loop {
@@ -51,10 +37,26 @@ pub fn run() {
                 });
             }
 
-            // 监听自定义的页面加载完成事件
+            // 监听页面加载完成更新标题
             let window_clone = window.clone();
+            let update_title_clone = update_title.clone();
             app.listen("page-loaded", move |_| {
-                let _ = window_clone.show();
+                let _ = window_clone.eval(&format!(
+                    "Promise.resolve().then(() => {{
+                        if (typeof window.updateTitle === 'function') {{
+                            return window.updateTitle('{}');
+                        }}
+                    }}).then(() => {{
+                        window.appsEmit('title-updated');
+                    }});",
+                    update_title_clone
+                ));
+            });
+
+            // 监听更新标题完成显示窗口
+            let window_show = window.clone();
+            app.listen("title-updated", move |_| {
+                let _ = window_show.show();
             });
 
             Ok(())

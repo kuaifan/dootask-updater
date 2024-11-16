@@ -13,11 +13,10 @@ import { ref, onMounted } from 'vue'
 const updateMessage = ref('Installing updates, please wait...')
 
 onMounted(() => {
-    // 获取 URL 参数
-    const urlParams = new URLSearchParams(window.location.search)
-    const message = urlParams.get('message')
-    if (message) {
-        updateMessage.value = decodeURIComponent(message)
+    window.updateTitle = (title: string) => {
+        if (title) {
+            updateMessage.value = title
+        }
     }
 })
 

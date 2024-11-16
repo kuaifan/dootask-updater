@@ -23,7 +23,7 @@
                 "alwaysOnTop": true,
                 "dragDropEnabled": false,
                 "fullscreen": false,
-                "visible": true
+                "visible": false
             }
         ],
         "macOSPrivateApi": true,
