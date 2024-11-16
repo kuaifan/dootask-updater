@@ -39,7 +39,7 @@ jobs:
         run: |
           VERSION=${{ steps.get-version.outputs.version }}
           # 修改 tauri.conf.json 中的版本号
-          jq --arg version "$VERSION" '.package.version = $version' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+          jq --arg version "$VERSION" '.version = $version' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
           mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
 
   create-release:
