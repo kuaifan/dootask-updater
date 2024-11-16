@@ -38,8 +38,9 @@ jobs:
         if: steps.check-tag.outputs.should_release == 'true'
         run: |
           VERSION=${{ steps.get-version.outputs.version }}
-          # 直接修改 tauri.conf.json 中的版本号
-          jq --arg version "$VERSION" '.package.version = $version' -i src-tauri/tauri.conf.json
+          # 修改 tauri.conf.json 中的版本号
+          jq --arg version "$VERSION" '.package.version = $version' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+          mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
 
   create-release:
     needs: check-version
