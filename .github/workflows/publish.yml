@@ -1,13 +1,42 @@
 name: "publish"
 
-on: pull_request
-
-# `tauri-action` can also upload app bundles to an existing GitHub release.
-# This workflow uses different actions to create and publish the release.
-# `tauri-action` will only build and upload the app bundles to the specified release.
+on:
+  push:
+    branches: ["*"]
 
 jobs:
+  check-version:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check-tag.outputs.should_release }}
+      version: ${{ steps.get-version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from package.json
+        id: get-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check-tag
+        run: |
+          VERSION=${{ steps.get-version.outputs.version }}
+          if git ls-remote --tags origin | grep -q "refs/tags/v${VERSION}$"; then
+            echo "该版本 v${VERSION} 已发布"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "版本 v${VERSION} 未发布，继续构建"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+
   create-release:
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -17,24 +46,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
-      - name: get version
-        run: echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
-
       - name: create release
         id: create-release
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `app-v${process.env.PACKAGE_VERSION}`,
-              name: `Desktop App v${process.env.PACKAGE_VERSION}`,
+              tag_name: `v${{ needs.check-version.outputs.version }}`,
+              name: `Desktop App v${{ needs.check-version.outputs.version }}`,
               body: 'Take a look at the assets to download and install this app.',
               draft: true,
               prerelease: false
@@ -42,25 +63,35 @@ jobs:
             return data.id
 
   build-tauri:
-    needs: create-release
+    needs: [check-version, create-release]
+    if: needs.check-version.outputs.should_release == 'true'
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest" # for Arm based macs (M1 and above).
+          - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
-          - platform: "macos-latest" # for Intel based macs.
+          - platform: "macos-latest"
             args: "--target x86_64-apple-darwin"
-          - platform: "ubuntu-22.04" # for Tauri v1 you could replace this with ubuntu-20.04.
+          - platform: "ubuntu-22.04"
             args: ""
           - platform: "windows-latest"
             args: ""
+          - platform: "windows-latest"
+            args: "--target aarch64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download logo file
+        run: |
+          mkdir -p src-tauri/icons
+          curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.icns -o src-tauri/icons/icon.icns
+          curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.ico -o src-tauri/icons/icon.ico
+          curl -L https://raw.githubusercontent.com/kuaifan/dootask/pro/public/images/logo-app.png -o src-tauri/icons/icon.png
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -70,37 +101,91 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.platform == 'windows-latest' && contains(matrix.args, 'aarch64') && 'aarch64-pc-windows-msvc' || '' }}
 
       - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-        # webkitgtk 4.0 is for Tauri v1 - webkitgtk 4.1 is for Tauri v2.
-        # You can remove the one that doesn't apply to your app to speed up the workflow a bit.
 
       - name: install frontend dependencies
-        run: yarn install # change this to npm, pnpm or bun depending on which one you use.
+        run: yarn install
+
+      - name: Sync version to tauri.conf.json
+        run: |
+          node -e "
+            const config = require('./src-tauri/tauri.conf.json');
+            config.version = '${{ needs.check-version.outputs.version }}';
+            require('fs').writeFileSync('./src-tauri/tauri.conf.json', JSON.stringify(config, null, 2) + '\n');
+          "
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
+          appVersion: ${{ needs.check-version.outputs.version }}
           args: ${{ matrix.args }}
 
+      - name: Upload binary artifacts
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 设置基础变量
+          VERSION="${{ needs.check-version.outputs.version }}"
+          RELEASE_TAG="v$VERSION"
+
+          # 根据平台设置目录和文件名
+          if [[ "${{ matrix.platform }}" == "ubuntu-22.04" ]]; then
+            BINARY_PATH="src-tauri/target/release"
+            ARTIFACT_NAME="binary_${VERSION}_linux-x86_64.zip"
+            BINARY_NAME="updater"
+          elif [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
+            if [[ "${{ matrix.args }}" == *"aarch64"* ]]; then
+              BINARY_PATH="src-tauri/target/aarch64-pc-windows-msvc/release"
+              ARTIFACT_NAME="binary_${VERSION}_windows-arm64.zip"
+            else
+              BINARY_PATH="src-tauri/target/release"
+              ARTIFACT_NAME="binary_${VERSION}_windows-x86_64.zip"
+            fi
+            BINARY_NAME="updater.exe"
+          elif [[ "${{ matrix.platform }}" == "macos-latest" ]]; then
+            if [[ "${{ matrix.args }}" == *"x86_64"* ]]; then
+              BINARY_PATH="src-tauri/target/x86_64-apple-darwin/release"
+              ARTIFACT_NAME="binary_${VERSION}_macos-x86_64.zip"
+            else
+              BINARY_PATH="src-tauri/target/aarch64-apple-darwin/release"
+              ARTIFACT_NAME="binary_${VERSION}_macos-arm64.zip"
+            fi
+            BINARY_NAME="updater"
+          fi
+
+          # 进入目标目录
+          cd $BINARY_PATH
+
+          # 根据平台选择打包命令
+          if [[ "${{ matrix.platform }}" == "windows-latest" ]]; then
+            7z a $ARTIFACT_NAME $BINARY_NAME
+          else
+            zip -j $ARTIFACT_NAME $BINARY_NAME
+          fi
+
+          # 上传文件
+          gh release upload $RELEASE_TAG $ARTIFACT_NAME
+
   publish-release:
+    needs: [check-version, create-release, build-tauri]
+    if: needs.check-version.outputs.should_release == 'true' && github.ref == 'refs/heads/master'
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    needs: [create-release, build-tauri]
 
     steps:
       - name: publish release
         id: publish-release
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         env:
           release_id: ${{ needs.create-release.outputs.release_id }}
         with:

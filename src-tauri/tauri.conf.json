@@ -1,6 +1,6 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
-    "productName": "updater",
+    "productName": "DooTask Updater",
     "version": "0.1.0",
     "identifier": "com.dootask.updater",
     "build": {
@@ -13,14 +13,17 @@
         "windows": [
             {
                 "title": "",
-                "width": 310,
-                "height": 150,
+                "width": 320,
+                "height": 140,
                 "center": true,
                 "resizable": false,
+                "maximizable": false,
                 "decorations": true,
                 "transparent": true,
                 "alwaysOnTop": true,
-                "dragDropEnabled": false
+                "dragDropEnabled": false,
+                "fullscreen": false,
+                "visible": false
             }
         ],
         "macOSPrivateApi": true,
@@ -32,7 +35,9 @@
         "active": true,
         "targets": "all",
         "icon": [
-            "../../../resources/assets/statics/public/images/logo-app.icns"
+            "icons/icon.icns",
+            "icons/icon.ico",
+            "icons/icon.png"
         ]
     }
 }
